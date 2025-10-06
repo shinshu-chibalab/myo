@@ -86,6 +86,8 @@ if __name__ == "__main__":
 
     num_muscles = len(muscles)
     Kp_opt = best_params[:num_muscles]
-    Kd_opt = best_params[num_muscles:]
+    Kd_opt = best_params[num_muscles:2*num_muscles]
+    target_len = best_params[2*num_muscles:]
     print("最適化された Kp:", Kp_opt)
     print("最適化された Kd:", Kd_opt)
+    print("最適化された muscle_len":, target_len)

@@ -171,11 +171,12 @@ class PDGainOptimizer:
             for i in range(num_muscles):
                 length_log[i].append(l[i])
 
-            cost = self.cost_fn(data, com_init_height=self.com_init_height)
-            total_cost += cost
+            # cost = self.cost_fn(data, com_init_height=self.com_init_height)
+            # total_cost += cost
 
             cop = compute_cop(self.model, data)
-            cop_log.append(cop)
+            if cop is not None:
+                cop_log.append(cop)
 
             if render:
                 renderer.update_scene(data)
@@ -254,7 +255,7 @@ def compute_cop(model, data):
     if total_fz > 1e-6:
         return np.array([cop_x / total_fz, cop_y / total_fz])
     else:
-        return np.zeros(2)
+        return None
 
 
 def cop_cost(cop_log):
@@ -263,4 +264,4 @@ def cop_cost(cop_log):
         cop_log = np.array(cop_log)
         diffs = np.diff(cop_log, axis=0)
         cop_cost = np.sum(np.linalg.norm(diffs, axis=1))
-    return cop_cost
+    return cop_cost / len(cop_log)
