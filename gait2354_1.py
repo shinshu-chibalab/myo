@@ -78,11 +78,7 @@ if __name__ == "__main__":
     optimizer = PDGainOptimizer(model_path, muscles, sim_steps=250, model_name="gait2354_v5", output_dir="results", cost_fn=balance_cost)
 
     # CMA-ES による最適化（1000世代）
-    best_params = optimizer.optimize(x0=None, sigma0=1.0, maxiter=1000, delay_time=0.0, noise_std=0.0)
-    print("最適化されたパラメータ:", best_params)
-
-    # 最適化されたゲインでレンダリング付きシミュレーション
-    optimizer.run_simulation(best_params, render=True, plot=False)
+    best_params = optimizer.optimize(x0=None, sigma0=1.0, maxiter=10, delay_time=0.0, noise_std=0.0)
 
     num_muscles = len(muscles)
     Kp_opt = best_params[:num_muscles]
@@ -90,4 +86,10 @@ if __name__ == "__main__":
     target_len = best_params[2*num_muscles:]
     print("最適化された Kp:", Kp_opt)
     print("最適化された Kd:", Kd_opt)
-    print("最適化された muscle_len":, target_len)
+    print("最適化された muscle_len:", target_len)
+
+    # 最適化されたゲインでレンダリング付きシミュレーション
+    optimizer.run_simulation(best_params, camera="front")
+    optimizer.run_simulation(best_params, camera="side")
+    optimizer.run_simulation(best_params, camera="oblique")
+    optimizer.run_simulation(best_params, camera="diagonal")

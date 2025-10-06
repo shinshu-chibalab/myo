@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import skvideo.io
 from mujoco import MjModel, MjData, mj_step, Renderer, mj_forward
 from cma import CMAEvolutionStrategy
-from shapely.geometry import Point, Polygon
+import multiprocessing as mp
 from scipy.spatial import ConvexHull
 
 
@@ -103,14 +103,11 @@ class PDGainOptimizer:
             self.cost_fn = cost_fn
 
         self.video_dir = os.path.join(output_dir, "videos")
-        self.plot_dir = os.path.join(output_dir, "plots")
         os.makedirs(self.video_dir, exist_ok=True)
-        os.makedirs(self.plot_dir, exist_ok=True)
 
         self.bos_active = False
 
-    def run_simulation(self, params, render=False, plot=False,
-                       delay_time=0.01, noise_std=0.001):
+    def run_simulation(self, params, camera=None, delay_time=0.0, noise_std=0.0):
         data = MjData(self.model)
         num_muscles = len(self.muscles)
 
@@ -136,7 +133,7 @@ class PDGainOptimizer:
         baseline = 0.05
         reflex_gain = 2.0
 
-        renderer = Renderer(self.model, height=400, width=400) if render else None
+        renderer = Renderer(self.model, height=400, width=400) if camera is not None else None
         frames = []
 
         for step in range(self.sim_steps):
@@ -178,12 +175,12 @@ class PDGainOptimizer:
             if cop is not None:
                 cop_log.append(cop)
 
-            if render:
-                renderer.update_scene(data)
+            if camera is not None:
+                renderer.update_scene(data, camera=camera)
                 frames.append(renderer.render())
 
-        if render:
-            video_path = os.path.join(self.video_dir, f"{self.model_name}_optimized.mp4")
+        if camera is not None:
+            video_path = os.path.join(self.video_dir, f"{self.model_name}_{camera}.mp4")
             skvideo.io.vwrite(video_path, np.asarray(frames), outputdict={"-pix_fmt": "yuv420p"})
             renderer.close()
 
@@ -191,7 +188,7 @@ class PDGainOptimizer:
         return total_cost
 
     def optimize(self, x0=None, sigma0=2, maxiter=50, popsize=40,
-                 delay_time=0.01, noise_std=0.001):
+                 delay_time=0.0, noise_std=0.0, n_jobs=None):
         num_pairs = len(pairs)
 
         if x0 is None:
@@ -213,18 +210,36 @@ class PDGainOptimizer:
 
         es = CMAEvolutionStrategy(x0, sigma0, opts)
 
-        while not es.stop():
-            solutions = es.ask()
-            costs = [self.run_simulation(expand_params(s, self.muscles, pairs),
-                                         delay_time=delay_time,
-                                         noise_std=noise_std) for s in solutions]
-            es.tell(solutions, costs)
-            es.disp()
+        # --- 並列処理設定 ---
+        if n_jobs is None:
+            n_jobs = max(1, mp.cpu_count() // 2)
+
+        print(f"🔧 Using {n_jobs} parallel workers")
+
+        # --- プロセスプールを使って並列最適化 ---
+        with mp.get_context("spawn").Pool(processes=n_jobs) as pool:
+            while not es.stop():
+                solutions = es.ask()
+
+                # 並列で run_simulation を実行
+                results = [
+                    pool.apply_async(
+                        self.run_simulation,
+                        args=(expand_params(s, self.muscles, pairs),),
+                        kwds={'delay_time': delay_time, 'noise_std': noise_std}
+                    )
+                    for s in solutions
+                ]
+
+                # 結果を取得
+                costs = [r.get() for r in results]
+
+                es.tell(solutions, costs)
+                es.disp()
 
         best = es.result.xbest
         self.best_params = expand_params(best, self.muscles, pairs)
 
-        print("done")
         return self.best_params
 
 
