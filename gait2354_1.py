@@ -1,5 +1,4 @@
 from pd_gain_optimizer1 import PDGainOptimizer
-from shapely.geometry import Point, Polygon
 import numpy as np
 
 def balance_cost(data, com_init_height):
@@ -78,7 +77,7 @@ if __name__ == "__main__":
     optimizer = PDGainOptimizer(model_path, muscles, sim_steps=250, model_name="gait2354_v5", output_dir="results", cost_fn=balance_cost)
 
     # CMA-ES による最適化（1000世代）
-    best_params = optimizer.optimize(x0=None, sigma0=1.0, maxiter=10, delay_time=0.0, noise_std=0.0)
+    best_params = optimizer.optimize(x0=None, sigma0=1.0, maxiter=10000, popsize=64, delay_time=0.0, noise_std=0.0, n_jobs=32)
 
     num_muscles = len(muscles)
     Kp_opt = best_params[:num_muscles]

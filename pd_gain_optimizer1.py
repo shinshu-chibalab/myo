@@ -182,7 +182,6 @@ class PDGainOptimizer:
         if camera is not None:
             video_path = os.path.join(self.video_dir, f"{self.model_name}_{camera}.mp4")
             skvideo.io.vwrite(video_path, np.asarray(frames), outputdict={"-pix_fmt": "yuv420p"})
-            renderer.close()
 
         total_cost += cop_cost(cop_log)
         return total_cost
@@ -243,6 +242,7 @@ class PDGainOptimizer:
         return self.best_params
 
 
+
 def compute_cop(model, data):
     """Compute Center of Pressure (COP) from ground reaction forces"""
     total_fz = 0.0
@@ -250,28 +250,36 @@ def compute_cop(model, data):
 
     for i in range(data.ncon):
         con = data.contact[i]
-        name1 = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, con.geom1)
-        name2 = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, con.geom2)
 
-        if "ground" not in (name1 or "") and "ground" not in (name2 or ""):
+        # 名前を取得（Noneは空文字に）
+        name1 = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, con.geom1) or ""
+        name2 = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, con.geom2) or ""
+
+        # ground-plane との接触のみ対象
+        if "ground-plane" not in (name1 + name2):
             continue
 
+        # 足のどの部位かを確認
+        foot_geom = name1 if "ground" not in name1 else name2
+
+        # 接触位置と力
         pos = con.pos
         force = np.zeros(6)
         mujoco.mj_contactForce(model, data, i, force)
         f = force[:3]
-
         fz = f[2]
+
         if fz > 1e-6:
             total_fz += fz
             cop_x += pos[0] * fz
             cop_y += pos[1] * fz
 
+    # COP計算
     if total_fz > 1e-6:
-        return np.array([cop_x / total_fz, cop_y / total_fz])
+        cop = np.array([cop_x / total_fz, cop_y / total_fz])
+        return cop
     else:
         return None
-
 
 def cop_cost(cop_log):
     cop_cost = 0.0

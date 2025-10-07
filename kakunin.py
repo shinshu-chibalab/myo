@@ -3,6 +3,7 @@ import numpy as np
 from mujoco import MjModel, MjData, mj_step, Renderer
 import skvideo.io
 import os
+import multiprocessing as mp
 
 # モデル読み込み
 model = MjModel.from_xml_path("myo_sim/gait2354/gait2354_simbody_cvt3.xml")
@@ -19,7 +20,12 @@ frames = []
 # --- 初期状態を反映 ---
 mujoco.mj_forward(model, data)
 
-for t in range(200):
+print(mp.cpu_count())
+
+for i in range(model.ngeom):
+    print(i, mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, i))
+
+for t in range(50):
     ctrl = np.zeros(model.nu)
     data.ctrl[:] = ctrl
 
