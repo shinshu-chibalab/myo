@@ -1,5 +1,7 @@
 from pd_gain_optimizer import PDGainOptimizer
+import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 def balance_cost(data, com_init_height):
     # COM(重心)　z
@@ -12,6 +14,29 @@ def balance_cost(data, com_init_height):
     # return height_cost + 0.01 * energy_cost
 
     return height_cost
+
+
+def plot_min_cost_history(optimizer):
+    """世代ごとの平均コストを対数スケールで保存のみ"""
+    mean_costs = optimizer.cost_history
+    generations = range(len(mean_costs))
+
+    plt.figure(figsize=(8,5))
+    plt.plot(generations, mean_costs, color='blue', marker='o', markersize=3)
+    plt.xlabel("Generation")
+    plt.ylabel("Mean Cost")
+    plt.title("CMA-ES Mean Cost History")
+    plt.yscale("log")  # 縦軸を対数表示
+    plt.grid(True, which="both", linestyle="--", linewidth=0.5)
+
+    # 保存先ディレクトリを作成
+    save_dir = os.path.join("results", "plot")
+    os.makedirs(save_dir, exist_ok=True)
+
+    save_path = os.path.join(save_dir, f"{optimizer.model_name}_history.png")
+    plt.savefig(save_path)
+    plt.close()  # 画面表示せずに閉じる
+    print(f"📌 コスト履歴を保存しました: {save_path}")
 
 if __name__ == "__main__":
     # --- モデル情報 ---
@@ -52,10 +77,11 @@ if __name__ == "__main__":
     ]
 
 
-    optimizer = PDGainOptimizer(model_path, muscles, sim_steps=250, model_name="gait2354_v6", output_dir="results", cost_fn=balance_cost)
+    optimizer = PDGainOptimizer(model_path, muscles, sim_steps=250, model_name="gait2354_v7", output_dir="results", cost_fn=balance_cost)
 
     # CMA-ES による最適化（1000世代）
-    best_params = optimizer.optimize(x0=None, sigma0=1.0, maxiter=10000, popsize=64, delay_time=0.0, noise_std=0.0, n_jobs=48)
+    best_params = optimizer.optimize(x0=x0, sigma0=1.0, maxiter=10000, popsize=96, delay_time=0.0, noise_std=0.0, n_jobs=48)
+    plot_min_cost_history(optimizer)
 
     num_muscles = len(muscles)
     Kp_opt = best_params[:num_muscles]

@@ -205,7 +205,7 @@
           <body name="vas_int_r_vas_int_r-P4" pos="0 0 0.001799">
             <joint name="vas_int_r_vas_int_r-P4_x" pos="0 0 0" axis="1 0 0" type="slide" range="0.008273 0.06844"/>
             <joint name="vas_int_r_vas_int_r-P4_y" pos="0 0 0" axis="0 1 0" type="slide" range="-0.06857 0.02752"/>
-            <geom size="0.0005" contype="2" conaffinity="2" rgba="0 0 1 0"/>
+            <geom size="0.004" contype="2" conaffinity="2" rgba="0 0 1 0"/>
             <site name="vas_int_r_vas_int_r-P4" pos="0 0 0"/>
           </body>
         </body>
@@ -313,7 +313,7 @@
           <body name="vas_int_l_vas_int_l-P4" pos="0 0 -0.001801">
             <joint name="vas_int_l_vas_int_l-P4_x" pos="0 0 0" axis="1 0 0" type="slide" range="0.008273 0.06844"/>
             <joint name="vas_int_l_vas_int_l-P4_y" pos="0 0 0" axis="0 1 0" type="slide" range="-0.06857 0.02752"/>
-            <geom size="0.0005" contype="2" conaffinity="2" rgba="0 0 1 0"/>
+            <geom size="0.004" contype="2" conaffinity="2" rgba="0 0 1 0"/>
             <site name="vas_int_l_vas_int_l-P4" pos="0 0 0"/>
           </body>
         </body>

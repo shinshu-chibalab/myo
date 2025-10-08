@@ -96,6 +96,7 @@ class PDGainOptimizer:
         self.sim_steps = sim_steps
         self.model_name = model_name if model_name else os.path.splitext(os.path.basename(model_path))[0]
         self.output_dir = output_dir
+        self.cost_history = []
 
         if cost_fn is None:
             self.cost_fn = lambda data, diff_len, v, u, step: np.sum(diff_len**2)
@@ -171,8 +172,14 @@ class PDGainOptimizer:
             # cost = self.cost_fn(data, com_init_height=self.com_init_height)
             # total_cost += cost
 
+            
             com = compute_com(data)
             com_log.append(com)
+
+            com_z = com[2]
+            if (0.9 * self.com_init_height) > com_z and (camera is None):
+                total_cost += self.sim_steps - step
+                break
 
             if camera is not None:
                 renderer.update_scene(data, camera=camera)
@@ -232,6 +239,8 @@ class PDGainOptimizer:
                 # 結果を取得
                 costs = [r.get() for r in results]
 
+                self.cost_history.append(np.mean(costs))
+
                 es.tell(solutions, costs)
                 es.disp()
 
@@ -239,7 +248,6 @@ class PDGainOptimizer:
         self.best_params = expand_params(best, self.muscles, pairs)
 
         return self.best_params
-    
 
 def compute_com(data):
     # COM(重心)　xyz
@@ -249,4 +257,4 @@ def com_cost(com_log):
     com_log = np.array(com_log)
     diffs = np.diff(com_log, axis=0)
     com_cost = np.sum(np.linalg.norm(diffs, axis=1))
-    return com_cost
+    return com_cost / len(com_log)
