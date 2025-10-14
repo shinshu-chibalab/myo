@@ -77,10 +77,10 @@ if __name__ == "__main__":
     ]
 
 
-    optimizer = PDGainOptimizer(model_path, muscles, sim_steps=250, model_name="gait2354_v7", output_dir="results", cost_fn=balance_cost)
+    optimizer = PDGainOptimizer(model_path, muscles, sim_steps=250, model_name="gait2354_v8", output_dir="results", cost_fn=balance_cost)
 
     # CMA-ES による最適化（1000世代）
-    best_params = optimizer.optimize(x0=x0, sigma0=1.0, maxiter=10000, popsize=96, delay_time=0.0, noise_std=0.0, n_jobs=48)
+    best_params = optimizer.optimize(x0=x0, sigma0=1.0, maxiter=10000, popsize=96, delay_time=0.05, noise_std=0.01, n_jobs=48)
     plot_min_cost_history(optimizer)
 
     num_muscles = len(muscles)
