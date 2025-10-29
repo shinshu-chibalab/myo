@@ -40,6 +40,8 @@ pairs = [
     ("extobl_r", "extobl_l")
 ]
 
+muscle_mass = np.array([0.17959950000000002, 0.22130550000000002, 0.19380000000000003, 0.8829, 0.4172759999999999, 0.24336, 0.8505089999999998, 0.066405, 0.0798, 0.171072, 0.244098, 0.36117899999999975, 0.23846399999999998, 0.3219, 0.33390000000000003, 0.06172199999999999, 0.011808, 0.034631999999999996, 0.399798, 1.605, 0.675, 0.6, 0.3348, 0.882, 0.17959950000000002, 0.22130550000000002, 0.19380000000000003, 0.8829, 0.4172759999999999, 0.24336, 0.8505089999999998, 0.066405, 0.0798, 0.171072, 0.244098, 0.36117899999999975, 0.23846399999999998, 0.3219, 0.33390000000000003, 0.06172199999999999, 0.011808, 0.034631999999999996, 0.399798, 1.605, 0.675, 0.6, 0.3348, 0.882, 0.9, 0.9, 0.27, 0.27, 0.324, 0.324])
+length_opt = np.array([0.0535, 0.0845, 0.0646, 0.109, 0.173, 0.52, 0.121, 0.095, 0.1, 0.352, 0.142, 0.1469999999999999, 0.144, 0.1, 0.1, 0.054, 0.024, 0.026, 0.114, 0.107, 0.09, 0.05, 0.031, 0.098, 0.0535, 0.0845, 0.0646, 0.109, 0.173, 0.52, 0.121, 0.095, 0.1, 0.352, 0.142, 0.1469999999999999, 0.144, 0.1, 0.1, 0.054, 0.024, 0.026, 0.114, 0.107, 0.09, 0.05, 0.031, 0.098, 0.12, 0.12, 0.1, 0.1, 0.12, 0.12])
 
 def compress_params(full_params, muscles, pairs):
     """左右対称ペアの右側だけ抜き出して圧縮"""
@@ -116,6 +118,7 @@ class PDGainOptimizer:
         Kd = np.array(params[num_muscles:2*num_muscles])
         target_len = np.array(params[2*num_muscles:])
         total_cost = 0.0
+        total_Edot = 0.0
 
         data.qpos[:] = self.model.key_qpos[0]
         data.qvel[:] = 0
@@ -140,6 +143,7 @@ class PDGainOptimizer:
         for step in range(self.sim_steps):
             l = data.ten_length[self.tendon_ids]
             v = data.ten_velocity[self.tendon_ids]
+            f = data.actuator_force[self.tendon_ids]
 
             length_buffer.append(l.copy())
             velocity_buffer.append(v.copy())
@@ -172,16 +176,23 @@ class PDGainOptimizer:
             # cost = self.cost_fn(data, com_init_height=self.com_init_height)
             # total_cost += cost
 
-            
             com = compute_com(data)
             com_log.append(com)
 
-            com_z = com[2]
-            if (0.9 * self.com_init_height) > com_z and (camera is None):
-                total_cost += self.sim_steps - step
-                break
+            total_Edot += muscle_metabolic_energy(muscle_mass, u, length_opt, v, f)
 
             if camera is not None:
+                # --- 筋色の更新（u: 0→青, 1→赤） ---
+                for t_id, ui in zip(self.tendon_ids, u):
+                    # 赤成分を ui に応じて増加、青成分を (1-ui) に応じて増加
+                    r = float(ui)
+                    g = 0.0
+                    b = float(1.0 - ui)
+                    a = 1.0
+
+                    # モデルの色を更新
+                    self.model.tendon_rgba[t_id] = np.array([r, g, b, a])
+
                 renderer.update_scene(data, camera=camera)
                 frames.append(renderer.render())
 
@@ -189,7 +200,7 @@ class PDGainOptimizer:
             video_path = os.path.join(self.video_dir, f"{self.model_name}_{camera}.mp4")
             skvideo.io.vwrite(video_path, np.asarray(frames), outputdict={"-pix_fmt": "yuv420p"})
 
-        total_cost += com_cost(com_log)
+        total_cost += (1e4 * com_cost(com_log)) + (total_Edot * 1e-5)
         return total_cost
 
     def optimize(self, x0=None, sigma0=2, maxiter=50, popsize=40,
@@ -258,3 +269,44 @@ def com_cost(com_log):
     diffs = np.diff(com_log, axis=0)
     com_cost = np.sum(np.linalg.norm(diffs, axis=1))
     return com_cost / len(com_log)
+
+
+
+def muscle_metabolic_energy(m, A, length_opt, V_CE, F_CE, r=0.5, S=1.0):
+    """
+    m: muscle mass [kg]
+    A: activation (0-1)
+    v_norm: normalized fiber velocity (v_CE / l_CE_opt)
+    F_CE_norm: normalized muscle force
+    r: slow-twitch ratio (0-1)
+    S: aerobic scaling factor
+    """
+
+    # Shortening / lengthening heat
+    alphaS_fast = 15.3
+    alphaS_slow = 25
+    alphaL = 100
+
+    Edot = 0
+
+    # ✅ zipで各筋ごとに値を取り出す
+    for mi, Ai, li, vi, fi in zip(m, A, length_opt, V_CE, F_CE):
+
+        v_norm = vi / li if li != 0 else 0.0
+
+        # Activation & maintenance heat（簡易版）
+        AMdot = mi * ((128 * (1 - r) + 25) * (Ai ** 0.6) * S)
+
+        # Shortening / lengthening heat
+        if v_norm >= 0:
+            Sdot = mi * ( -((alphaS_slow * v_norm * r) +
+                             (alphaS_fast * v_norm * (1 - r))) * Ai**2 * S )
+        else:
+            Sdot = mi * (alphaL * (-v_norm) * Ai * S)
+
+        # Mechanical work rate（簡易）
+        Wdot = abs(fi * vi)
+
+        Edot += (AMdot + Sdot + Wdot)
+
+    return Edot
