@@ -77,10 +77,10 @@ if __name__ == "__main__":
     ]
 
 
-    optimizer = PDGainOptimizer(model_path, muscles, sim_steps=250, model_name="gait2354_v9", output_dir="results", cost_fn=balance_cost)
+    optimizer = PDGainOptimizer(model_path, muscles, sim_steps=250, model_name="gait2354_v26", output_dir="results", cost_fn=balance_cost)
 
     # CMA-ES による最適化（1000世代）
-    best_params = optimizer.optimize(x0=x0, sigma0=1.0, maxiter=10000, popsize=96, delay_time=0.0, noise_std=0.0, n_jobs=48)
+    best_params = optimizer.optimize(x0=None, sigma0=1.0, maxiter=10000, popsize=112, delay_time=0.10, noise_std=0.01, n_jobs=56)
     plot_min_cost_history(optimizer)
 
     num_muscles = len(muscles)
@@ -91,8 +91,25 @@ if __name__ == "__main__":
     print("最適化された Kd:", Kd_opt)
     print("最適化された muscle_len:", target_len)
 
-    # 最適化されたゲインでレンダリング付きシミュレーション
-    optimizer.run_simulation(best_params, camera="front")
-    optimizer.run_simulation(best_params, camera="side")
-    optimizer.run_simulation(best_params, camera="oblique")
-    optimizer.run_simulation(best_params, camera="diagonal")
+
+# --- version ---
+
+"""
+V10: Wc = 1e2, We = 1e-5, delay_time = 0.00, noise_std = 0.00
+V11: Wc = 1e2, We = 1e-5, delay_time = 0.05, noise_std = 0.01
+V12: Wc = 1e2, We = 1e-5, delay_time = 0.10, noise_std = 0.01
+V13: Wc = 1e2, We = 1e-4, delay_time = 0.00, noise_std = 0.00
+V14: Wc = 1e2, We = 1e-4, delay_time = 0.05, noise_std = 0.01
+V15: Wc = 1e2, We = 1e-4, delay_time = 0.10, noise_std = 0.01
+V16 test: Wc = 1e2, We = 1e-4, delay_time = 0.0, noise_std = 0.0, maxtier=1000
+V17: Wc = 1e2, We = 1e-4, delay_time = 0.00, noise_std = 0.00, x0=None
+V18: Wc = 1e2, We = 1e-5, delay_time = 0.00, noise_std = 0.00, x0=None
+V19: Wc = 1e2, We = 1e-5, delay_time = 0.00, noise_std = 0.00, sigmoid: e^(-3x+14)
+V20: Wc = 1e2, We = 1e-5, delay_time = 0.00, noise_std = 0.00, Softplus log1p(exp(x-10))
+V21: Wc = 1e2, We = 1e-5, delay_time = 0.00, noise_std = 0.00, Softplus log1p(exp(x-5))
+V22: Wc = 1e2, We = 1e-5, delay_time = 0.10, noise_std = 0.01, Softplus log1p(exp(x-5)), x0=None
+V23: Wc = 1e2, We = 1e-5, delay_time = 0.10, noise_std = 0.01, Softplus log1p(exp(x-5))
+V24: Wc = 1e2, We = 1e-5, delay_time = 0.10, noise_std = 0.01, Softplus log1p(exp(x-1))
+V25: Wc = 1e2, We = 1e-5, delay_time = 0.10, noise_std = 0.01, Softplus log1p(exp(x-10)), x0=None
+V26: Wc = 1e2, We = 1e-5, delay_time = 0.10, noise_std = 0.01, Softplus log1p(exp(x-4)), x0=None
+"""
