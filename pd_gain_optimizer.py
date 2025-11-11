@@ -7,6 +7,10 @@ from cma import CMAEvolutionStrategy
 import multiprocessing as mp
 from functools import partial
 
+import pyswarms as ps
+from pyswarms.backend.topology import Star
+from functools import partial
+
 # ======= ユーザ提供データ（省略せずそのまま） =======
 pairs = [
     ("glut_med1_r", "glut_med1_l"),
@@ -80,7 +84,7 @@ def expand_params_from_indices(compressed_params, muscles_len, pair_r_indices, p
 # ======= 並列ワーカのグローバル状態（各プロセスで一度だけ初期化） =======
 _WORKER = {}
 
-def _init_worker(model_path, muscles, pairs, sim_steps, model_key_qpos):
+def _init_worker(model_path, muscles, pairs, sim_steps, model_key_qpos, com_init_height):
     """Pool の initializer で一度だけ呼ぶ。各ワーカーでモデルをロードして必要インデックスを保持"""
     model = MjModel.from_xml_path(model_path)
 
@@ -102,6 +106,8 @@ def _init_worker(model_path, muscles, pairs, sim_steps, model_key_qpos):
     _WORKER['model_qpos0'] = model_key_qpos.copy()
     # preallocate renderer = None; will create lazily if asked to render
     _WORKER['renderer'] = None
+    _WORKER['com_init_height'] = com_init_height
+
 
 # ======= ベクトル化された代謝エネルギー計算（numpy） =======
 def muscle_metabolic_energy_vectorized(m, A, length_opt_arr, V_CE, F_CE, r=0.5):
@@ -158,6 +164,7 @@ def run_simulation_worker(compressed_params, delay_time=0.0, noise_std=0.0, came
     pair_r_indices = _WORKER['pair_r_indices']
     pair_l_indices = _WORKER['pair_l_indices']
     qpos0 = _WORKER['model_qpos0']
+    com_init_height = _WORKER['com_init_height']
 
     # 展開（高速版）
     params_full = expand_params_from_indices(compressed_params, muscles_len, pair_r_indices, pair_l_indices)
@@ -221,9 +228,13 @@ def run_simulation_worker(compressed_params, delay_time=0.0, noise_std=0.0, came
 
         mj_step(model, data)
 
-        if step > 5:
-            com = np.array(data.subtree_com[0])
-            com_log.append(com)
+        com = np.array(data.subtree_com[0])
+        com_log.append(com)
+
+        # --- 転倒判定 ---
+        if com[2] < 0.9 * com_init_height:
+            remaining = sim_steps - step
+            return float(remaining * 100.0)
 
         total_Edot += muscle_metabolic_energy_vectorized(
             muscle_mass[tendon_ids], u, length_opt[tendon_ids], v, f
@@ -250,7 +261,7 @@ def run_simulation_worker(compressed_params, delay_time=0.0, noise_std=0.0, came
     # simple COM cost: ここは軽量化のために単純版（必要なら元の重い版に戻せます）
     # NOTE: model.subtree_com から realtime にアクセスするのは高コストなので省略可能
     # ここでは代わりに 0 を返すようにしているが、もし COM を取りたいなら mj_forward 後に data.subtree_com を読める
-    total_cost = np.log1p(np.exp((1e2 * com_cost(com_log)) - 4)) + (1e-5 * total_Edot)
+    total_cost = np.log1p(np.exp((com_cost(com_log)) - 0.0075)) + (5e-6 * total_Edot)
 
     return float(total_cost)
 
@@ -304,8 +315,9 @@ class PDGainOptimizer:
         opts = {
             "maxiter": maxiter,
             "popsize": popsize,
-            "tolfun": 1e-12,
-            "tolx": 1e-12,
+            "tolfun": 1e-20,
+            "tolx": 1e-20,
+            "tolfunhist": 1e-20,
             "bounds": [bounds_lower, bounds_upper]
         }
 
@@ -321,7 +333,7 @@ class PDGainOptimizer:
         pair_l_indices = [self.muscles.index(l) for r, l in pairs]
 
         # ワーカー初期化を partial にして model path 等を渡す
-        initargs = (self.model_path, self.muscles, pairs, self.sim_steps, self.model.key_qpos[0])
+        initargs = (self.model_path, self.muscles, pairs, self.sim_steps, self.model.key_qpos[0], self.com_init_height)
 
         # spawn でプロセスを立ち上げ（Windows や互換性を考慮）
         ctx = mp.get_context("spawn")
@@ -344,12 +356,79 @@ class PDGainOptimizer:
         best = es.result.xbest
 
         # 最適化後、動画生成の前に初期化
-        _init_worker(self.model_path, self.muscles, pairs, self.sim_steps, self.model.key_qpos[0])
+        _init_worker(self.model_path, self.muscles, pairs, self.sim_steps, self.model.key_qpos[0], self.com_init_height)
 
         # 動画生成
         for cam in ["front", "diagonal", "side", "oblique"]:
             run_simulation_worker(best, delay_time=delay_time, noise_std=noise_std, camera=cam, video_dir=self.video_dir, model_name=self.model_name)
+            print(f"camera={cam}で動画を生成しました")
 
         # 最後にフル展開（メインプロセス用）して保持
         self.best_params = expand_params_from_indices(best, len(self.muscles), pair_r_indices, pair_l_indices)
         return self.best_params
+
+    def pso(self, x0=None, sigma0=2, maxiter=50, popsize=40, delay_time=0.0, noise_std=0.0, n_jobs=None, camera=None):
+        num_pairs = len(pairs)
+        self.cost_history = []
+
+        # ===== 初期パラメータ =====
+        if x0 is None:
+            init_Kp = [1.0]*num_pairs
+            init_Kd = [1.0]*num_pairs
+            init_target = self.init_len[[self.muscles.index(r) for r, l in pairs]]
+            x0 = np.concatenate([init_Kp, init_Kd, init_target])
+
+        bounds_lower = np.array([0]*num_pairs + [0]*num_pairs + [0.0]*num_pairs)
+        bounds_upper = np.array([15]*num_pairs + [15]*num_pairs + [0.6]*num_pairs)
+
+        dim = len(x0)
+        if n_jobs is None:
+            n_jobs = max(1, mp.cpu_count() // 2)
+        print(f"🔧 Using {n_jobs} parallel workers")
+
+        # ===== Worker初期化 =====
+        pair_r_indices = [self.muscles.index(r) for r, l in pairs]
+        pair_l_indices = [self.muscles.index(l) for r, l in pairs]
+        initargs = (self.model_path, self.muscles, pairs, self.sim_steps, self.model.key_qpos[0])
+        ctx = mp.get_context("spawn")
+        pool = ctx.Pool(processes=n_jobs, initializer=_init_worker, initargs=initargs)
+
+        # ===== 評価関数（ベクトル入力対応） =====
+        worker_func = partial(run_simulation_worker,
+                                delay_time=delay_time, noise_std=noise_std,
+                                camera=camera, video_dir=self.video_dir, model_name=self.model_name)
+
+        def cost_func(X):
+            # X.shape = (n_particles, n_dim)
+            results = pool.map(worker_func, X)
+            self.cost_history.append(np.mean(results))
+            return np.array(results)
+
+        # ===== PSO設定 =====
+        options = {'c1': 1.5, 'c2': 1.5, 'w': 0.7}
+        bounds = (bounds_lower, bounds_upper)
+        optimizer = ps.single.GlobalBestPSO(
+            n_particles=popsize,
+            dimensions=dim,
+            options=options,
+            bounds=bounds
+        )
+
+        # ===== 最適化実行 =====
+        cost, best_pos = optimizer.optimize(cost_func, iters=maxiter, verbose=True)
+
+        pool.close()
+        pool.join()
+
+        # ===== 最適パラメータを展開 =====
+        best = best_pos
+        _init_worker(self.model_path, self.muscles, pairs, self.sim_steps, self.model.key_qpos[0])
+
+        # 結果動画生成
+        for cam in ["front", "diagonal", "side", "oblique"]:
+            run_simulation_worker(best, delay_time=delay_time, noise_std=noise_std,
+                                    camera=cam, video_dir=self.video_dir, model_name=self.model_name)
+
+        self.best_params = expand_params_from_indices(best, len(self.muscles), pair_r_indices, pair_l_indices)
+        return self.best_params
+

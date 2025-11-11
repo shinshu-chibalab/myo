@@ -20,10 +20,10 @@ frames = []
 # --- 初期状態を反映 ---
 mujoco.mj_forward(model, data)
 
-print(mp.cpu_count())
-
-for i in range(model.ngeom):
-    print(i, mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, i))
+# print(mp.cpu_count())
+print(float(np.array(data.subtree_com[0][2])))
+# for i in range(model.ngeom):
+#     print(i, mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, i))
 
 for t in range(50):
     ctrl = np.zeros(model.nu)
@@ -32,19 +32,19 @@ for t in range(50):
     # 接触している geom の確認
     contacts = []
 
-    for i in range(data.ncon):
-        con = data.contact[i]
-        g1, g2 = con.geom1, con.geom2
-        name1 = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, g1)
-        name2 = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, g2)
-        contacts.append((name1, name2))
+    # for i in range(data.ncon):
+    #     con = data.contact[i]
+    #     g1, g2 = con.geom1, con.geom2
+    #     name1 = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, g1)
+    #     name2 = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, g2)
+    #     contacts.append((name1, name2))
 
-        pos = con.pos
+    #     pos = con.pos
 
-        x = pos[0]
-        y = pos[1]
+    #     x = pos[0]
+    #     y = pos[1]
 
-        print(x, y)
+    #     print(x, y)
 
     mj_step(model, data)
     renderer.update_scene(data)
@@ -54,4 +54,4 @@ os.makedirs("videos", exist_ok=True)
 skvideo.io.vwrite("./videos/kakunin.mp4", np.asarray(frames), outputdict={"-pix_fmt": "yuv420p"})
 
 x0 = [10] * 5 + [1] * 1
-print(x0)
+# print(x0)
