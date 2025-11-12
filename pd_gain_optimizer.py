@@ -315,9 +315,9 @@ class PDGainOptimizer:
         opts = {
             "maxiter": maxiter,
             "popsize": popsize,
-            "tolfun": 1e-20,
-            "tolx": 1e-20,
-            "tolfunhist": 1e-20,
+            "tolfun": 1e-12,
+            "tolx": 1e-12,
+            "tolfunhist": 1e-12,
             "bounds": [bounds_lower, bounds_upper]
         }
 
