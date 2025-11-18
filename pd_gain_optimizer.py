@@ -6,10 +6,16 @@ from mujoco import MjModel, MjData, mj_step, Renderer, mj_forward
 from cma import CMAEvolutionStrategy
 import multiprocessing as mp
 from functools import partial
+import matplotlib.pyplot as plt
 
 import pyswarms as ps
 from pyswarms.backend.topology import Star
 from functools import partial
+
+Kp_min = 0
+Kp_max = 15
+Kd_min = 0
+Kd_max = 15
 
 # ======= ユーザ提供データ（省略せずそのまま） =======
 pairs = [
@@ -41,6 +47,8 @@ pairs = [
     ("intobl_r", "intobl_l"),
     ("extobl_r", "extobl_l")
 ]
+
+num_pairs = len(pairs)
 
 muscle_mass = np.array([0.17959950000000002, 0.22130550000000002, 0.19380000000000003, 0.8829, 0.4172759999999999, 0.24336, 0.8505089999999998, 0.066405, 0.0798, 0.171072, 0.244098, 0.36117899999999975, 0.23846399999999998, 0.3219, 0.33390000000000003, 0.06172199999999999, 0.011808, 0.034631999999999996, 0.399798, 1.605, 0.675, 0.6, 0.3348, 0.882, 0.17959950000000002, 0.22130550000000002, 0.19380000000000003, 0.8829, 0.4172759999999999, 0.24336, 0.8505089999999998, 0.066405, 0.0798, 0.171072, 0.244098, 0.36117899999999975, 0.23846399999999998, 0.3219, 0.33390000000000003, 0.06172199999999999, 0.011808, 0.034631999999999996, 0.399798, 1.605, 0.675, 0.6, 0.3348, 0.882, 0.9, 0.9, 0.27, 0.27, 0.324, 0.324])
 length_opt = np.array([0.0535, 0.0845, 0.0646, 0.109, 0.173, 0.52, 0.121, 0.095, 0.1, 0.352, 0.142, 0.1469999999999999, 0.144, 0.1, 0.1, 0.054, 0.024, 0.026, 0.114, 0.107, 0.09, 0.05, 0.031, 0.098, 0.0535, 0.0845, 0.0646, 0.109, 0.173, 0.52, 0.121, 0.095, 0.1, 0.352, 0.142, 0.1469999999999999, 0.144, 0.1, 0.1, 0.054, 0.024, 0.026, 0.114, 0.107, 0.09, 0.05, 0.031, 0.098, 0.12, 0.12, 0.1, 0.1, 0.12, 0.12])
@@ -95,6 +103,7 @@ def _init_worker(model_path, muscles, pairs, sim_steps, model_key_qpos, com_init
     pair_r_indices = [muscles.index(r) for r, l in pairs]
     pair_l_indices = [muscles.index(l) for r, l in pairs]
 
+
     # store frequently used constants in global var for worker
     _WORKER['model'] = model
     _WORKER['tendon_ids'] = tendon_ids
@@ -107,7 +116,6 @@ def _init_worker(model_path, muscles, pairs, sim_steps, model_key_qpos, com_init
     # preallocate renderer = None; will create lazily if asked to render
     _WORKER['renderer'] = None
     _WORKER['com_init_height'] = com_init_height
-
 
 # ======= ベクトル化された代謝エネルギー計算（numpy） =======
 def muscle_metabolic_energy_vectorized(m, A, length_opt_arr, V_CE, F_CE, r=0.5):
@@ -150,8 +158,23 @@ def com_cost(com_log):
     com_cost = np.sum(np.linalg.norm(diffs, axis=1))
     return com_cost
 
+# 正規化関数
+def encode_params(params, length_range):
+    Kp_norm = (params[:num_pairs] - Kp_min) / (Kp_max - Kp_min)
+    Kd_norm = (params[num_pairs:2*num_pairs] - Kd_min) / (Kd_max - Kd_min)
+    t_norm = (params[2*num_pairs:] - length_range[:,0]) / (length_range[:,1] - length_range[:,0])
+    return np.concatenate([Kp_norm, Kd_norm, t_norm])
+
+# norm→実パラメータ関数
+def decode_params(params_norm, length_range):
+    Kp = params_norm[:num_pairs] * (Kp_max - Kp_min) + Kp_min
+    Kd = params_norm[num_pairs:2*num_pairs] * (Kd_max - Kd_min) + Kd_min
+    t = params_norm[2*num_pairs:] * (length_range[:,1] - length_range[:,0]) + length_range[:,0]
+    return np.concatenate([Kp, Kd, t])
+
+
 # ======= シミュレーション実行（ワーカー側で呼ばれる） =======
-def run_simulation_worker(compressed_params, delay_time=0.0, noise_std=0.0, camera=None, video_dir=None, model_name=None):
+def run_simulation_worker(params_norm, length_range, delay_time=0.0, noise_std=0.0):
     """
     この関数は各ワーカー内で実行される（_WORKER を参照）
     compressed_params: 圧縮（右側のみ）パラメータ
@@ -165,6 +188,10 @@ def run_simulation_worker(compressed_params, delay_time=0.0, noise_std=0.0, came
     pair_l_indices = _WORKER['pair_l_indices']
     qpos0 = _WORKER['model_qpos0']
     com_init_height = _WORKER['com_init_height']
+
+
+    # 正規化されたparamsを実際の値に変換
+    compressed_params = decode_params(params_norm, length_range)
 
     # 展開（高速版）
     params_full = expand_params_from_indices(compressed_params, muscles_len, pair_r_indices, pair_l_indices)
@@ -190,8 +217,8 @@ def run_simulation_worker(compressed_params, delay_time=0.0, noise_std=0.0, came
     baseline = 0.05
     reflex_gain = 2.0
 
-    frames = []
-    renderer = None
+    # frames = []
+    # renderer = None
 
     com_log = []
 
@@ -229,39 +256,22 @@ def run_simulation_worker(compressed_params, delay_time=0.0, noise_std=0.0, came
         mj_step(model, data)
 
         com = np.array(data.subtree_com[0])
-        com_log.append(com)
+        if step > 20:
+            com_log.append(com)
 
         # --- 転倒判定 ---
         if com[2] < 0.9 * com_init_height:
             remaining = sim_steps - step
             return float(remaining * 100.0)
 
-        total_Edot += muscle_metabolic_energy_vectorized(
-            muscle_mass[tendon_ids], u, length_opt[tendon_ids], v, f
-        )
+        # total_Edot += muscle_metabolic_energy_vectorized(
+        #     muscle_mass[tendon_ids], u, length_opt[tendon_ids], v, f
+        # )
+    
+    # border = sim_steps * 15 * 10-6
 
-        # rendering (必要な時のみ)
-        if camera is not None:
-            if renderer is None:
-                # lazy renderer を使う（各ワーカーで1つだけ）
-                renderer = Renderer(model, height=400, width=400)
-            # update tendon colors (これは少しコストが高いので最低限に)
-            for idx, ui in zip(tendon_ids, u):
-                r = float(ui); g = 0.0; b = float(1.0 - ui); a = 1.0
-                model.tendon_rgba[idx] = np.array([r, g, b, a])
-            renderer.update_scene(data, camera=camera)
-            frames.append(renderer.render())
-
-    # video 書き出し（呼ばれたら）
-    if camera is not None and len(frames) > 0 and video_dir is not None:
-        os.makedirs(video_dir, exist_ok=True)
-        video_path = os.path.join(video_dir, f"{model_name}_{camera}.mp4")
-        skvideo.io.vwrite(video_path, np.asarray(frames), outputdict={"-pix_fmt": "yuv420p"})
-
-    # simple COM cost: ここは軽量化のために単純版（必要なら元の重い版に戻せます）
-    # NOTE: model.subtree_com から realtime にアクセスするのは高コストなので省略可能
-    # ここでは代わりに 0 を返すようにしているが、もし COM を取りたいなら mj_forward 後に data.subtree_com を読める
-    total_cost = np.log1p(np.exp((com_cost(com_log)) - 0.0075)) + (5e-6 * total_Edot)
+    # total_cost = np.log1p(np.exp((com_cost(com_log)) - border)) + (1e-7 * total_Edot)
+    total_cost = com_cost(com_log)
 
     return float(total_cost)
 
@@ -275,12 +285,21 @@ class PDGainOptimizer:
         self.tendon_ids = [self.model.tendon(f"{m}_tendon").id for m in muscles]
         self.actuator_ids = [self.model.actuator(m).id for m in muscles]
 
+        self.actuator_ids_r = np.array([
+            mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_ACTUATOR, r)
+            for r, l in pairs
+        ], dtype=int)
+
+        self.length_range = self.model.actuator_lengthrange[self.actuator_ids_r]
+
         data = MjData(self.model)
         data.qpos[:] = self.model.key_qpos[0].copy()
         data.qvel[:] = 0
         data.qacc[:] = 0
         mj_forward(self.model, data)
         self.com_init_height = float(np.array(data.subtree_com[0])[2])
+
+        self.num_pairs = len(pairs)
 
         self.init_len = np.array([data.ten_length[t_id] for t_id in self.tendon_ids])
         print("Initial tendon lengths:", self.init_len)
@@ -298,19 +317,21 @@ class PDGainOptimizer:
         os.makedirs(self.video_dir, exist_ok=True)
 
     def optimize(self, x0=None, sigma0=2, maxiter=50, popsize=40,
-                 delay_time=0.0, noise_std=0.0, n_jobs=None, camera=None):
-        num_pairs = len(pairs)
+                 delay_time=0.0, noise_std=0.0, n_jobs=None):
 
         self.cost_history = []
 
         if x0 is None:
-            init_Kp = [1.0]*num_pairs
-            init_Kd = [1.0]*num_pairs
+            init_Kp = [1.0]*self.num_pairs
+            init_Kd = [1.0]*self.num_pairs
             init_target = self.init_len[[self.muscles.index(r) for r, l in pairs]]
             x0 = np.concatenate([init_Kp, init_Kd, init_target])
 
-        bounds_lower = [0]*num_pairs + [0]*num_pairs + [0.0]*num_pairs
-        bounds_upper = [15]*num_pairs + [15]*num_pairs + [0.6]*num_pairs
+        x0 = encode_params(x0, self.length_range)
+
+        # bounds 正規化に合わせて [0,1]
+        bounds_lower = np.zeros_like(x0)
+        bounds_upper = np.ones_like(x0)
 
         opts = {
             "maxiter": maxiter,
@@ -338,9 +359,8 @@ class PDGainOptimizer:
         # spawn でプロセスを立ち上げ（Windows や互換性を考慮）
         ctx = mp.get_context("spawn")
         with ctx.Pool(processes=n_jobs, initializer=_init_worker, initargs=initargs) as pool:
-            # prepare worker function with fixed kwargs
-            worker_func = partial(run_simulation_worker, delay_time=delay_time, noise_std=noise_std,
-                                  camera=camera, video_dir=self.video_dir, model_name=self.model_name)
+            
+            worker_func = partial(run_simulation_worker, length_range=self.length_range, delay_time=delay_time, noise_std=noise_std)
 
             while not es.stop():
                 solutions = es.ask()
@@ -350,21 +370,15 @@ class PDGainOptimizer:
                 es.tell(solutions, costs)
                 es.disp()
 
-                mean_cost = float (np.mean(costs))
-                self.cost_history.append(mean_cost)
+                min_cost = float (np.min(costs))
+                self.cost_history.append(min_cost)
 
-        best = es.result.xbest
+        best_norm = es.result.xbest
 
-        # 最適化後、動画生成の前に初期化
-        _init_worker(self.model_path, self.muscles, pairs, self.sim_steps, self.model.key_qpos[0], self.com_init_height)
-
-        # 動画生成
-        for cam in ["front", "diagonal", "side", "oblique"]:
-            run_simulation_worker(best, delay_time=delay_time, noise_std=noise_std, camera=cam, video_dir=self.video_dir, model_name=self.model_name)
-            print(f"camera={cam}で動画を生成しました")
+        best_pair = decode_params(best_norm, self.length_range)
 
         # 最後にフル展開（メインプロセス用）して保持
-        self.best_params = expand_params_from_indices(best, len(self.muscles), pair_r_indices, pair_l_indices)
+        self.best_params = expand_params_from_indices(best_pair, len(self.muscles), pair_r_indices, pair_l_indices)
         return self.best_params
 
     def pso(self, x0=None, sigma0=2, maxiter=50, popsize=40, delay_time=0.0, noise_std=0.0, n_jobs=None, camera=None):
@@ -378,8 +392,11 @@ class PDGainOptimizer:
             init_target = self.init_len[[self.muscles.index(r) for r, l in pairs]]
             x0 = np.concatenate([init_Kp, init_Kd, init_target])
 
-        bounds_lower = np.array([0]*num_pairs + [0]*num_pairs + [0.0]*num_pairs)
-        bounds_upper = np.array([15]*num_pairs + [15]*num_pairs + [0.6]*num_pairs)
+        x0 = encode_params(x0, self.length_range)
+
+        # bounds 正規化に合わせて [0,1]
+        bounds_lower = np.zeros_like(x0)
+        bounds_upper = np.ones_like(x0)
 
         dim = len(x0)
         if n_jobs is None:
@@ -389,29 +406,30 @@ class PDGainOptimizer:
         # ===== Worker初期化 =====
         pair_r_indices = [self.muscles.index(r) for r, l in pairs]
         pair_l_indices = [self.muscles.index(l) for r, l in pairs]
-        initargs = (self.model_path, self.muscles, pairs, self.sim_steps, self.model.key_qpos[0])
+        initargs = (self.model_path, self.muscles, pairs, self.sim_steps, self.model.key_qpos[0], self.com_init_height)
         ctx = mp.get_context("spawn")
         pool = ctx.Pool(processes=n_jobs, initializer=_init_worker, initargs=initargs)
 
         # ===== 評価関数（ベクトル入力対応） =====
-        worker_func = partial(run_simulation_worker,
-                                delay_time=delay_time, noise_std=noise_std,
-                                camera=camera, video_dir=self.video_dir, model_name=self.model_name)
+        worker_func = partial(run_simulation_worker, length_range=self.length_range, delay_time=delay_time, noise_std=noise_std)
 
         def cost_func(X):
             # X.shape = (n_particles, n_dim)
             results = pool.map(worker_func, X)
-            self.cost_history.append(np.mean(results))
+            self.cost_history.append(np.min(results))
             return np.array(results)
+        
+        init_pos = np.tile(x0, (popsize, 1)) + 0.01*np.random.randn(popsize, dim)
 
         # ===== PSO設定 =====
-        options = {'c1': 1.5, 'c2': 1.5, 'w': 0.7}
+        options = {'c1': 1.2, 'c2': 1.2, 'w': 0.4}
         bounds = (bounds_lower, bounds_upper)
         optimizer = ps.single.GlobalBestPSO(
             n_particles=popsize,
             dimensions=dim,
             options=options,
-            bounds=bounds
+            bounds=bounds,
+            init_pos = np.clip(init_pos, bounds[0], bounds[1])
         )
 
         # ===== 最適化実行 =====
@@ -421,14 +439,125 @@ class PDGainOptimizer:
         pool.join()
 
         # ===== 最適パラメータを展開 =====
-        best = best_pos
-        _init_worker(self.model_path, self.muscles, pairs, self.sim_steps, self.model.key_qpos[0])
+        best_norm = best_pos
 
-        # 結果動画生成
-        for cam in ["front", "diagonal", "side", "oblique"]:
-            run_simulation_worker(best, delay_time=delay_time, noise_std=noise_std,
-                                    camera=cam, video_dir=self.video_dir, model_name=self.model_name)
+        best_pair = decode_params(best_norm, self.length_range)
 
-        self.best_params = expand_params_from_indices(best, len(self.muscles), pair_r_indices, pair_l_indices)
+        self.best_params = expand_params_from_indices(best_pair, len(self.muscles), pair_r_indices, pair_l_indices)
         return self.best_params
 
+    def render_video(self, params, camera, delay_time=0.0, noise_std=0.0):
+        num_muscles = len(self.muscles)
+        Kp = params[:num_muscles]
+        Kd = params[num_muscles:2*num_muscles]
+        target_len = params[2*num_muscles:]
+
+        data = MjData(self.model)
+        # 初期化
+        data.qpos[:] = self.model.key_qpos[0].copy()
+        data.qvel[:] = 0
+        data.qacc[:] = 0
+        mj_forward(self.model, data)
+
+        dt = self.model.opt.timestep
+        delay_steps = max(1, int(delay_time / dt))
+
+        length_buffer = []
+        velocity_buffer = []
+
+        baseline = 0.05
+        reflex_gain = 2.0
+
+        renderer = Renderer(self.model, height=400, width=400)
+        frames = []
+
+        # ===== 可視化対象の代表筋を選ぶ =====
+        # 例: 最初の3つの筋
+        plot_indices = [0, 5, 10]   # self.tendon_ids の順序に対応
+        plot_names = [self.muscles[i] for i in plot_indices]
+
+        # 記録用リスト
+        log_len = {name: [] for name in plot_names}
+        log_target = {name: [] for name in plot_names}
+        log_u = {name: [] for name in plot_names}
+
+
+        for step in range(self.sim_steps):
+            l = data.ten_length[self.tendon_ids]
+            v = data.ten_velocity[self.tendon_ids]
+
+            length_buffer.append(l.copy())
+            velocity_buffer.append(v.copy())
+
+            if len(length_buffer) > delay_steps:
+                l_delayed = length_buffer[-delay_steps]
+                v_delayed = velocity_buffer[-delay_steps]
+            else:
+                l_delayed = l
+                v_delayed = v
+
+            diff_len = l_delayed - target_len
+            reflex = reflex_gain * np.clip(diff_len, 0, None)
+            u = baseline + Kp * diff_len + Kd * v + reflex
+
+            if noise_std > 0:
+                u = u + np.random.normal(0.0, noise_std, size=u.shape)
+            np.clip(u, 0.0, 1.0, out=u)
+
+            ctrl = np.zeros(self.model.nu, dtype=float)
+            ctrl[self.actuator_ids] = u
+            data.ctrl[:] = ctrl
+
+            # 1 step
+            mj_step(self.model, data)
+
+            # 色更新（任意）
+            for idx, ui in zip(self.tendon_ids, u):
+                self.model.tendon_rgba[idx] = np.array([float(ui), 0.0, float(1.0-ui), 1.0])
+            renderer.update_scene(data, camera=camera)
+            frames.append(renderer.render())
+
+            # ==== ログ保存（代表筋のみ） ====
+            for idx, name in zip(plot_indices, plot_names):
+                log_len[name].append(l[idx])
+                log_target[name].append(target_len[idx])
+                log_u[name].append(u[idx])
+
+
+
+        # ビデオ書き出し（フレームが 0 でもメッセージを残しておく）
+        os.makedirs(self.video_dir, exist_ok=True)
+        video_path = os.path.join(self.video_dir, f"{self.model_name}_{camera}.mp4")
+        try:
+            if len(frames) > 0:
+                skvideo.io.vwrite(video_path, np.asarray(frames), outputdict={"-pix_fmt": "yuv420p"})
+                print(f"[render_video] wrote {video_path} ({len(frames)} frames)")
+            else:
+                # frames が無いなら静止画1フレームを作る（視認性のため）または空ファイルを作らない
+                print(f"[render_video] no frames generated for camera={camera}, skipping write.")
+        except Exception as e:
+            print(f"[render_video] failed to write {video_path}: {e}")
+        # ===== グラフ描画 ====
+
+        steps = np.arange(self.sim_steps)
+
+        save_dir = os.path.join("results", "plot_muscle_length")
+        os.makedirs(save_dir, exist_ok=True)
+
+        for name in plot_names:
+            plt.figure(figsize=(8, 4))
+            plt.title(f"Muscle: {name}")
+            plt.plot(steps, log_len[name], label="Length", linewidth=2)
+            plt.plot(steps, log_target[name], label="Target length", linestyle="--")
+            plt.plot(steps, log_u[name], label="Activation (u)", alpha=0.7)
+            
+            plt.xlabel("Step")
+            plt.legend()
+            plt.grid(True)
+            plt.tight_layout()
+            # 保存のみ
+            save_path = os.path.join(save_dir, f"{name}.png")
+            plt.savefig(save_path)
+
+            # 表示しない
+            plt.close()
