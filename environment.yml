@@ -117,6 +117,7 @@ dependencies:
   - pandas=1.4.1
   - pcre2=10.42
   - pillow=11.3.0
+  - pip=23.3.2
   - pixman=0.46.4
   - platformdirs=4.3.7
   - ply=3.11
@@ -184,5 +185,4 @@ dependencies:
       - cma==4.4.0
       - comocma==0.6.0
       - moarchiving==1.1.0
-      - pip==23.3.2
       - sortedcontainers==2.4.0

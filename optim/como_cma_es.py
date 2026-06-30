@@ -140,6 +140,12 @@ class COMO_CMA_ES(OptimizerBase):
             "bounds": [bounds_lower, bounds_upper],
             "popsize": kernel_popsize,
             "verb_disp": 0,
+            "maxiter": maxiter,
+            "tolfun": 1e-30,
+            "tolx": 1e-30,
+            "tolfunhist": 1e-30,
+            "tolstagnation": 10**9,
+            "tolflatfitness": 10**9,
         }
 
         kernels = comocma.get_cmas(
@@ -208,11 +214,17 @@ class COMO_CMA_ES(OptimizerBase):
                 self.cost_history_mean1.append(float(np.mean(f1)))
                 self.cost_history_mean2.append(float(np.mean(f2)))
 
+                best_f1_so_far = np.min(np.asarray(archive_F)[:, 0])
+                best_f2_so_far = np.min(np.asarray(archive_F)[:, 1])
+
                 print(
                     f"Gen {gen:03d} | "
-                    f"evals={len(solutions)} | active kernels={len(moes)} "
+                    f"evals={len(solutions)} | "
                     f"f1[min]={np.min(f1)}, f2[min]={np.min(f2)}"
                 )
+
+                if gen % 100 == 0:
+                    print(f"best_f1={best_f1_so_far}, best_f2={best_f2_so_far}")
 
         except KeyboardInterrupt:
             print("\nOptimization interrupted by user")
