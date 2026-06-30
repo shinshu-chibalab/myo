@@ -1,3 +1,7 @@
+# 筋はこの初期値を使うモデル(gait10dof24musc.xml)に搭載されている筋の名前を使う
+# 筋ごとに使えるパラメーターは Kp(P gain), l0(目標筋長), Kd(D gain), v0(目標速度), Kf(筋張力 gain), f0(目標筋長力), ff(定常フィードフォワード成分)の7つ
+# Ki(積分ゲイン)は実装していないので、実装する際はsimulation/worker.py と contorller/*.py を修正する必要がある
+
 # 24筋初期値（l0, Kp, Kd, ff）
 muscles24_v0 = {
     "hamstrings_r": {
