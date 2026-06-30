@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+**/__pycache__/
+*.py[cod]
+
+# IDE
+.vscode/
+.idea/
+
+# Optimization outputs
+results/
+cma_kernels/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Conda
+.env
+.venv
+
+# OpenSim models
+opensim-models/
+
+# myo converter
+myoconverter/

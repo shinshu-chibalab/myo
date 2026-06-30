@@ -95,7 +95,7 @@
           <site name="tib_ant_r_tib_ant_r-P2" pos="0.0329 -0.3951 -0.0177" />
           <body name="talus_r" pos="0 -0.43 0">
             <inertial pos="0 0 0" mass="0.1" diaginertia="0.001 0.001 0.001" />
-            <joint name="ankle_angle_r" pos="0 0 0" axis="0 0 1" limited="false" range="-1.571 1.571" />
+            <joint name="ankle_angle_r" pos="0 0 0" axis="0 0 1" limited="true" range="-1.571 1.571" />
             <geom name="talus_r_geom_1" type="mesh" rgba="1 1 1 1" mesh="talus_r_geom_1_talus" />
             <body name="calcn_r" pos="-0.04877 -0.04195 0.00792">
               <inertial pos="0.1 0.03 0" quat="0 0.707107 0 0.707107" mass="1.25" diaginertia="0.0041 0.0039 0.0014" />
@@ -165,7 +165,7 @@
           <site name="tib_ant_l_tib_ant_l-P2" pos="0.0329 -0.3951 0.0177" />
           <body name="talus_l" pos="0 -0.43 0">
             <inertial pos="0 0 0" mass="0.1" diaginertia="0.001 0.001 0.001" />
-            <joint name="ankle_angle_l" pos="0 0 0" axis="0 0 1" limited="false" range="-1.571 1.571" />
+            <joint name="ankle_angle_l" pos="0 0 0" axis="0 0 1" limited="true" range="-1.571 1.571" />
             <geom name="talus_l_geom_1" type="mesh" rgba="1 1 1 1" mesh="talus_l_geom_1_l_talus" />
             <body name="calcn_l" pos="-0.04877 -0.04195 -0.00792">
               <inertial pos="0.1 0.03 0" quat="0 0.707107 0 0.707107" mass="1.25" diaginertia="0.0041 0.0039 0.0014" />
