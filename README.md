@@ -24,6 +24,12 @@ The project has been tested on:
 - Miniconda / Anaconda
 - Git
 
+Please install the following software before proceeding:
+
+- Git: https://git-scm.com/install/windows
+- Miniconda: https://www.anaconda.com/docs/getting-started/miniconda/install/overview
+- VScode: https://code.visualstudio.com/download?_exp_download=fb315fc982
+
 ---
 
 ## Installation
