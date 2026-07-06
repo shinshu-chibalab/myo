@@ -2,8 +2,7 @@
 
 import numpy as np
 import pandas as pd
-
-pd.set_option("display.float_format", "{:.6f}".format)
+import os
 
 u_ff1 = [
     0.0092675,  0.00725747, 0.16213073, 0.14477271, 0.01632438, 0.21039299, 0.01121039, 0.16627052, 0.12580715, 0.0092675,  0.00725747, 0.16213073,
@@ -234,7 +233,8 @@ Kp_list = [Kp1, Kp2, Kp3, Kp4, Kp5, Kp6, Kp7, Kp8, Kp9, Kp10]
 Kd_list = [Kd1, Kd2, Kd3, Kd4, Kd5, Kd6, Kd7, Kd8, Kd9, Kd10]
 muscle_len_list = [muscle_len1, muscle_len2, muscle_len3, muscle_len4, muscle_len5, muscle_len6, muscle_len7, muscle_len8, muscle_len9, muscle_len10]
 
-def analyze_vectors(vector_list, name):
+def analyze_vectors(vector_list, name, model_name):
+    pd.set_option("display.float_format", "{:.6f}".format)
     X = np.asarray(vector_list, dtype=float)
 
     # ノルム
@@ -266,12 +266,10 @@ def analyze_vectors(vector_list, name):
     print(f"\n===== {name} Norm =====")
     print(df_norm)
 
-    df_cos.to_csv(f"{name}_cosine_similarity.csv")
-    df_norm.to_csv(f"{name}_norm.csv")
+    save_dir = os.path.join("results", model_name, "cosine_similarity")
+    os.makedirs(save_dir, exist_ok=True)
+
+    df_cos.to_csv(os.path.join(save_dir, f"{name}_cosine_similarity.csv"))
+    df_norm.to_csv(os.path.join(save_dir, f"{name}_norm.csv"))
 
     return df_cos, df_norm
-
-analyze_vectors(u_ff_list, "u_ff")
-analyze_vectors(Kp_list, "Kp")
-analyze_vectors(Kd_list, "Kd")
-analyze_vectors(muscle_len_list, "muscle_len")

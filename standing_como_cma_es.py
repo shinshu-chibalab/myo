@@ -2,9 +2,13 @@ import numpy as np
 from optim.como_cma_es import COMO_CMA_ES
 from render.render import render_video
 from controller.Standing_Controller import standing_controller
+# from controller.Standing_Scone_Controller import standing_controller
 from evaluator.f1Energy_f2Com_evaluator import standing_evaluator
-# from x0_gait10dof18musc import muscles18_v1
-from x0_gait10dof24musc import muscles24_v0
+# from x0_gait10dof18musc import *
+from x0_gait10dof24musc import *
+# from x0_gait2354 import *
+
+from cos_sim import analyze_vectors
 
 
 if __name__ == "__main__":
@@ -12,16 +16,16 @@ if __name__ == "__main__":
     # model_path = "myo_sim/gait10dof18musc/gait10dof18musc_cvt6.xml"
     model_path = "myo_sim/gait10dof24musc/gait10dof24musc_cvt2.xml"
     # model_name = "gait10dof18musc_standing_v2(como_cma_es)"
-    model_name = "gait10dof24musc_standing_v1(como_cma_es)"
+    model_name = "gait10dof24musc_standing_v6(como_cma_es)"
     # muscles = muscles18_v1
     muscles = muscles24_v0
 
-    sim_steps = 1000
+    sim_steps = 2000
     sigma0 = 0.05
     popsize = 896
     maxiter = 3000
-    delay_time = 0.20
-    noise_std = 0.00
+    delay_time = 0.0
+    noise_std = 0.0
     n_jobs = 56
     symmetry = True
     n_kernels = 8
@@ -68,6 +72,11 @@ if __name__ == "__main__":
 
     cameras = ["front", "diagonal", "side", "oblique"]
 
+    ff_list = []
+    Kp_list = []
+    Kd_list = []
+    muscle_len_list = []
+
     for i, (params, fitness) in enumerate(zip(best_params, best_fitness), start=1):
 
         fit_text = "_".join(
@@ -100,3 +109,13 @@ if __name__ == "__main__":
         print("Kp:", params.get("Kp"))
         print("Kd:", params.get("Kd"))
         print("ff:", params.get("ff"))
+
+        ff_list.append(params.get("ff"))
+        Kp_list.append(params.get("Kp"))
+        Kd_list.append(params.get("Kd"))
+        muscle_len_list.append(params.get("l0"))
+
+    analyze_vectors(ff_list, "ff", model_name)
+    analyze_vectors(Kp_list, "Kp", model_name)
+    analyze_vectors(Kd_list, "Kd", model_name)
+    analyze_vectors(muscle_len_list, "muscle_len", model_name)

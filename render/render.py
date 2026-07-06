@@ -33,9 +33,9 @@ def render_video(model_path, x, muscles, controller, sim_steps, model_name, dela
     data.qpos[:] = model.key_qpos[0].copy()
     data.qvel[:] = 0
     data.qacc[:] = 0
-    data.qpos[pelvis_tilt_id] -= 0.05
-    data.qpos[ankle_angle_r_id] -= 0.03
-    data.qpos[ankle_angle_l_id] -= 0.03
+    data.qpos[pelvis_tilt_id] -= 0.02
+    data.qpos[ankle_angle_r_id] -= 0.01
+    data.qpos[ankle_angle_l_id] -= 0.01
     mj_forward(model, data)
 
     dt = model.opt.timestep

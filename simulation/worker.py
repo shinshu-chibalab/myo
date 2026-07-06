@@ -100,9 +100,9 @@ def run_simulation_worker(x, controller, evaluator, delay_time=0.0, noise_std=0.
         data.qvel[:] = 0
         data.qacc[:] = 0
 
-        data.qpos[pelvis_tilt_id] -= 0.05
-        data.qpos[ankle_angle_r_id] -= 0.03
-        data.qpos[ankle_angle_l_id] -= 0.03
+        data.qpos[pelvis_tilt_id] -= 0.02
+        data.qpos[ankle_angle_r_id] -= 0.01
+        data.qpos[ankle_angle_l_id] -= 0.01
 
         mj_forward(model, data)
 
@@ -129,9 +129,13 @@ def run_simulation_worker(x, controller, evaluator, delay_time=0.0, noise_std=0.
             else:
                 u = ff.copy()
 
-            u += np.random.normal(0.0, noise_std * u, size=u.shape)
 
+            u += np.random.normal(0.0, noise_std * u, size=u.shape)
             np.clip(u, 0.0, 1.0, out=u)
+
+            # u += np.random.normal(0.0, 0.01, size=u.shape)
+            # np.clip(u, 0.0, 1.0, out=u)
+
 
             # set ctrl vector using precomputed actuator ids
             data.ctrl[:] = 0.0
@@ -160,4 +164,4 @@ def run_simulation_worker(x, controller, evaluator, delay_time=0.0, noise_std=0.
 
         all_costs.append(evaluator(logs))
 
-    return tuple(np.mean(np.asarray(all_costs), axis=0))
+    return tuple(np.max(np.asarray(all_costs), axis=0))

@@ -40,79 +40,79 @@ alpha = np.array([0, 0.40142572999999998, 0, 0.13962633999999999, 0.087266460000
 #     "hamstrings_l", "bifemsh_l", "glut_max_l", "iliopsoas_l", "rect_fem_l", "vasti_l", "gastroc_l", "soleus_l", "tib_ant_l",
 # ]
 
-# pairs = [
-#     ("hamstrings_r", "hamstrings_l"),
-#     ("bifemsh_r", "bifemsh_l"),
-#     ("glut_max_r", "glut_max_l"),
-#     ("iliopsoas_r", "iliopsoas_l"),
-#     ("rect_fem_r", "rect_fem_l"),
-#     ("vasti_r", "vasti_l"),
-#     ("gastroc_r", "gastroc_l"),
-#     ("soleus_r", "soleus_l"),
-#     ("tib_ant_r", "tib_ant_l"),
-#     ("ercspn_r", "ercspn_l"),
-#     ("intobl_r", "intobl_l"),
-#     ("extobl_r", "extobl_l")
-# ]
-
-# muscles =[
-#     "hamstrings_r", "bifemsh_r", "glut_max_r", "iliopsoas_r", "rect_fem_r", "vasti_r", "gastroc_r", "soleus_r", "tib_ant_r",
-#     "hamstrings_l", "bifemsh_l", "glut_max_l", "iliopsoas_l", "rect_fem_l", "vasti_l", "gastroc_l", "soleus_l", "tib_ant_l",
-#     "ercspn_r", "ercspn_l", "intobl_r", "intobl_l", "extobl_r", "extobl_l"
-# ]
-
 pairs = [
-    ("glut_med1_r", "glut_med1_l"),
-    ("glut_med2_r", "glut_med2_l"),
-    ("glut_med3_r", "glut_med3_l"),
-    ("bifemlh_r", "bifemlh_l"),
+    ("hamstrings_r", "hamstrings_l"),
     ("bifemsh_r", "bifemsh_l"),
-    ("sar_r", "sar_l"),
-    ("add_mag2_r", "add_mag2_l"),
-    ("tfl_r", "tfl_l"),
-    ("pect_r", "pect_l"),
-    ("grac_r", "grac_l"),
-    ("glut_max1_r", "glut_max1_l"),
-    ("glut_max2_r", "glut_max2_l"),
-    ("glut_max3_r", "glut_max3_l"),
-    ("iliacus_r", "iliacus_l"),
-    ("psoas_r", "psoas_l"),
-    ("quad_fem_r", "quad_fem_l"),
-    ("gem_r", "gem_l"),
-    ("peri_r", "peri_l"),
+    ("glut_max_r", "glut_max_l"),
+    ("iliopsoas_r", "iliopsoas_l"),
     ("rect_fem_r", "rect_fem_l"),
-    ("vas_int_r", "vas_int_l"),
-    ("med_gas_r", "med_gas_l"),
+    ("vasti_r", "vasti_l"),
+    ("gastroc_r", "gastroc_l"),
     ("soleus_r", "soleus_l"),
-    ("tib_post_r", "tib_post_l"),
     ("tib_ant_r", "tib_ant_l"),
     ("ercspn_r", "ercspn_l"),
     ("intobl_r", "intobl_l"),
     ("extobl_r", "extobl_l")
 ]
 
-muscles = [
-    "glut_med1_r", "glut_med2_r", "glut_med3_r",
-    "bifemlh_r", "bifemsh_r", "sar_r", "add_mag2_r", "tfl_r", "pect_r", "grac_r",
-    "glut_max1_r", "glut_max2_r", "glut_max3_r",
-    "iliacus_r", "psoas_r", "quad_fem_r", "gem_r", "peri_r",
-    "rect_fem_r", "vas_int_r", "med_gas_r", "soleus_r", "tib_post_r", "tib_ant_r",
-
-    "glut_med1_l", "glut_med2_l", "glut_med3_l",
-    "bifemlh_l", "bifemsh_l", "sar_l", "add_mag2_l", "tfl_l", "pect_l", "grac_l",
-    "glut_max1_l", "glut_max2_l", "glut_max3_l",
-    "iliacus_l", "psoas_l", "quad_fem_l", "gem_l", "peri_l",
-    "rect_fem_l", "vas_int_l", "med_gas_l", "soleus_l", "tib_post_l", "tib_ant_l",
-
-    "ercspn_r", "ercspn_l",
-    "intobl_r", "intobl_l",
-    "extobl_r", "extobl_l"
+muscles =[
+    "hamstrings_r", "bifemsh_r", "glut_max_r", "iliopsoas_r", "rect_fem_r", "vasti_r", "gastroc_r", "soleus_r", "tib_ant_r",
+    "hamstrings_l", "bifemsh_l", "glut_max_l", "iliopsoas_l", "rect_fem_l", "vasti_l", "gastroc_l", "soleus_l", "tib_ant_l",
+    "ercspn_r", "ercspn_l", "intobl_r", "intobl_l", "extobl_r", "extobl_l"
 ]
+
+# pairs = [
+#     ("glut_med1_r", "glut_med1_l"),
+#     ("glut_med2_r", "glut_med2_l"),
+#     ("glut_med3_r", "glut_med3_l"),
+#     ("bifemlh_r", "bifemlh_l"),
+#     ("bifemsh_r", "bifemsh_l"),
+#     ("sar_r", "sar_l"),
+#     ("add_mag2_r", "add_mag2_l"),
+#     ("tfl_r", "tfl_l"),
+#     ("pect_r", "pect_l"),
+#     ("grac_r", "grac_l"),
+#     ("glut_max1_r", "glut_max1_l"),
+#     ("glut_max2_r", "glut_max2_l"),
+#     ("glut_max3_r", "glut_max3_l"),
+#     ("iliacus_r", "iliacus_l"),
+#     ("psoas_r", "psoas_l"),
+#     ("quad_fem_r", "quad_fem_l"),
+#     ("gem_r", "gem_l"),
+#     ("peri_r", "peri_l"),
+#     ("rect_fem_r", "rect_fem_l"),
+#     ("vas_int_r", "vas_int_l"),
+#     ("med_gas_r", "med_gas_l"),
+#     ("soleus_r", "soleus_l"),
+#     ("tib_post_r", "tib_post_l"),
+#     ("tib_ant_r", "tib_ant_l"),
+#     ("ercspn_r", "ercspn_l"),
+#     ("intobl_r", "intobl_l"),
+#     ("extobl_r", "extobl_l")
+# ]
+
+# muscles = [
+#     "glut_med1_r", "glut_med2_r", "glut_med3_r",
+#     "bifemlh_r", "bifemsh_r", "sar_r", "add_mag2_r", "tfl_r", "pect_r", "grac_r",
+#     "glut_max1_r", "glut_max2_r", "glut_max3_r",
+#     "iliacus_r", "psoas_r", "quad_fem_r", "gem_r", "peri_r",
+#     "rect_fem_r", "vas_int_r", "med_gas_r", "soleus_r", "tib_post_r", "tib_ant_r",
+
+#     "glut_med1_l", "glut_med2_l", "glut_med3_l",
+#     "bifemlh_l", "bifemsh_l", "sar_l", "add_mag2_l", "tfl_l", "pect_l", "grac_l",
+#     "glut_max1_l", "glut_max2_l", "glut_max3_l",
+#     "iliacus_l", "psoas_l", "quad_fem_l", "gem_l", "peri_l",
+#     "rect_fem_l", "vas_int_l", "med_gas_l", "soleus_l", "tib_post_l", "tib_ant_l",
+
+#     "ercspn_r", "ercspn_l",
+#     "intobl_r", "intobl_l",
+#     "extobl_r", "extobl_l"
+# ]
 
 # モデル読み込み
 # model = MjModel.from_xml_path("myo_sim/gait10dof18musc/gait10dof18musc_cvt5.xml")
-# model = MjModel.from_xml_path("myo_sim/gait10dof24musc/gait10dof24musc_cvt1.xml")
-model = MjModel.from_xml_path("myo_sim/gait2354/gait2354_simbody_cvt3.xml")
+model = MjModel.from_xml_path("myo_sim/gait10dof24musc/gait10dof24musc_cvt1.xml")
+# model = MjModel.from_xml_path("myo_sim/gait2354/gait2354_simbody_cvt3.xml")
 data = MjData(model)
 
 tendon_ids = np.array([model.tendon(f"{m}_tendon").id for m in muscles], dtype=int)
@@ -221,6 +221,9 @@ gastroc_length_history = []
 soleus_act_history = []
 gastroc_act_history = []
 
+soleus_vel_history = []
+gastroc_vel_history = []
+
 for m in ["ercspn_r", "ercspn_l", "intobl_r", "intobl_l", "extobl_r", "extobl_l"]:
     aid = model.actuator(m).id
     tid = model.tendon(f"{m}_tendon").id
@@ -228,7 +231,9 @@ for m in ["ercspn_r", "ercspn_l", "intobl_r", "intobl_l", "extobl_r", "extobl_l"
 
 for t in range(200):
     ctrl = np.zeros(model.nu)
-    if t % 10 == 0:
+    ctrl[0] = 0
+    ctrl[12] = 0
+    # if t % 10 == 0:
         # ctrl[5] = 0.0
         # ctrl[6] = 0.3
         # ctrl[7] = 0.0
@@ -237,15 +242,16 @@ for t in range(200):
         # ctrl[15] = 0.3
         # ctrl[16] = 0.0
         # ctrl[17] = 0.8
-        ctrl[18] = 1.0
-        ctrl[19] = 1.0
-        ctrl[20] = 1.0
-        ctrl[21] = 1.0
-        ctrl[22] = 0.2
-        ctrl[23] = 0.2
+        # ctrl[18] = 1.0
+        # ctrl[19] = 1.0
+        # ctrl[20] = 1.0
+        # ctrl[21] = 1.0
+        # ctrl[22] = 0.2
+        # ctrl[23] = 0.2
+
     data.ctrl[:] = ctrl
     soleus_length_history.append(
-        data.ten_length[18]
+        data.ten_length[0]
     )
 
     gastroc_length_history.append(
@@ -253,17 +259,25 @@ for t in range(200):
     )
 
     soleus_act_history.append(
-        data.act[7]
+        data.act[0]
     )
 
     gastroc_act_history.append(
-        data.act[6]
+        data.act[20]
+    )
+
+    soleus_vel_history.append(
+        data.ten_velocity[0]
+    )
+
+    gastroc_vel_history.append(
+        data.ten_velocity[20]
     )
 
     v_t = data.ten_velocity
     l_t = data.ten_length
     f_t = data.actuator_force
-    print(f"tendon: l[18]={l_t[18]}, v[18]={v_t[18]}, f[18]={f_t[18]}")
+    print(f"tendon: l[0]={l_t[0]}, v[0]={v_t[0]}, f[0]={f_t[0]}")
     # print(data.qpos[lumbar_extension_id])
     # COM 計算
     com = data.subtree_com[0].copy()
@@ -319,27 +333,39 @@ for t in range(200):
 os.makedirs("videos", exist_ok=True)
 skvideo.io.vwrite("./videos/kakunin.mp4", np.asarray(frames), inputdict={"-r": "200"}, outputdict={"-pix_fmt": "yuv420p"})
 
-# time = np.arange(len(soleus_length_history))
+time = np.arange(len(soleus_length_history))
 
-# plt.figure(figsize=(10, 5))
+plt.figure(figsize=(10, 5))
 
-# plt.plot(
-#     time,
-#     soleus_length_history,
-#     label="soleus_r length"
-# )
+plt.plot(
+    time,
+    soleus_length_history,
+    label="soleus_r length"
+)
 
-# plt.plot(
-#     time,
-#     gastroc_length_history,
-#     label="gastroc_r length"
-# )
+plt.plot(
+    time,
+    gastroc_length_history,
+    label="gastroc_r length"
+)
 
-# plt.xlabel("step")
-# plt.ylabel("MTU length [m]")
-# plt.title("Muscle-Tendon Length")
-# plt.legend()
-# plt.grid()
+plt.plot(
+    time,
+    soleus_vel_history,
+    label="soleus_r velocity"
+)
 
-# plt.show()
+plt.plot(
+    time,
+    gastroc_vel_history,
+    label="gastroc_r veolocity"
+)
+
+plt.xlabel("step")
+plt.ylabel("MTU length [m]")
+plt.title("Muscle-Tendon Length")
+plt.legend()
+plt.grid()
+
+plt.show()
 

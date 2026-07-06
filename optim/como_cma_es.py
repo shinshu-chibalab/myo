@@ -134,12 +134,13 @@ class COMO_CMA_ES(OptimizerBase):
 
             x_starts.append(x.tolist())
 
-        sigma_starts = [sigma0] * n_kernels
+        sigma_starts = [1.0] * n_kernels
 
         cma_opts = {
             "bounds": [bounds_lower, bounds_upper],
             "popsize": kernel_popsize,
             "verb_disp": 0,
+            "CMA_stds": (bounds_upper - bounds_lower) * sigma0,
             "maxiter": maxiter,
             "tolfun": 1e-30,
             "tolx": 1e-30,
