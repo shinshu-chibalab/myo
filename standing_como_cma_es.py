@@ -16,15 +16,15 @@ if __name__ == "__main__":
     # model_path = "myo_sim/gait10dof18musc/gait10dof18musc_cvt6.xml"
     model_path = "myo_sim/gait10dof24musc/gait10dof24musc_cvt2.xml"
     # model_name = "gait10dof18musc_standing_v2(como_cma_es)"
-    model_name = "gait10dof24musc_standing_v6(como_cma_es)"
+    model_name = "gait10dof24musc_standing_v8(como_cma_es)"
     # muscles = muscles18_v1
-    muscles = muscles24_v0
+    muscles = muscles24_v2
 
-    sim_steps = 2000
-    sigma0 = 0.05
+    sim_steps = 1000
+    sigma0 = 0.01
     popsize = 896
     maxiter = 3000
-    delay_time = 0.0
+    delay_time = 0.2
     noise_std = 0.0
     n_jobs = 56
     symmetry = True

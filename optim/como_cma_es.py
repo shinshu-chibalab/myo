@@ -145,8 +145,6 @@ class COMO_CMA_ES(OptimizerBase):
             "tolfun": 1e-30,
             "tolx": 1e-30,
             "tolfunhist": 1e-30,
-            "tolstagnation": 10**9,
-            "tolflatfitness": 10**9,
         }
 
         kernels = comocma.get_cmas(

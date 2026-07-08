@@ -5,6 +5,7 @@ import skvideo.io
 import os
 import multiprocessing as mp
 import matplotlib.pyplot as plt
+from utils.com_cost import *
 
 l_mtu = np.array([
     0.338137, 0.526421, 0.191264, 0.249268, 0.156724, 0.27299, 
@@ -186,7 +187,6 @@ length_range = model.actuator_lengthrange[actuator_ids]
 # print(length_range)
 
 # print(mp.cpu_count())
-# print(float(np.array(data.subtree_com[0][2])))
 # for i in range(model.ngeom):
 #     print(i, mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, i))
 com_geom_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "com_marker")
@@ -229,7 +229,9 @@ for m in ["ercspn_r", "ercspn_l", "intobl_r", "intobl_l", "extobl_r", "extobl_l"
     tid = model.tendon(f"{m}_tendon").id
     print(m, "lengthrange=", model.actuator_lengthrange[aid], "ten_length=", data.ten_length[tid])
 
-for t in range(200):
+steps = 1000
+com_log = np.zeros((steps, 3))
+for t in range(steps):
     ctrl = np.zeros(model.nu)
     ctrl[0] = 0
     ctrl[12] = 0
@@ -277,6 +279,8 @@ for t in range(200):
     v_t = data.ten_velocity
     l_t = data.ten_length
     f_t = data.actuator_force
+    print(np.array(data.subtree_com[0]))
+    com_log[t] = data.subtree_com[0]
     print(f"tendon: l[0]={l_t[0]}, v[0]={v_t[0]}, f[0]={f_t[0]}")
     # print(data.qpos[lumbar_extension_id])
     # COM 計算
@@ -330,42 +334,53 @@ for t in range(200):
     renderer.update_scene(data, camera="oblique")
     frames.append(renderer.render())
 
-os.makedirs("videos", exist_ok=True)
-skvideo.io.vwrite("./videos/kakunin.mp4", np.asarray(frames), inputdict={"-r": "200"}, outputdict={"-pix_fmt": "yuv420p"})
+com_length = com_cost(com_log)
+print(com_length)
 
-time = np.arange(len(soleus_length_history))
+area = com_95ellipse_area_xz(com_log)
+print(area)
 
-plt.figure(figsize=(10, 5))
+area = com_95ellipse_area_xz_fast(com_log)
+print(area)
 
-plt.plot(
-    time,
-    soleus_length_history,
-    label="soleus_r length"
-)
+plot_com_95ellipse(com_log)
 
-plt.plot(
-    time,
-    gastroc_length_history,
-    label="gastroc_r length"
-)
+# os.makedirs("videos", exist_ok=True)
+# skvideo.io.vwrite("./videos/kakunin.mp4", np.asarray(frames), inputdict={"-r": "200"}, outputdict={"-pix_fmt": "yuv420p"})
 
-plt.plot(
-    time,
-    soleus_vel_history,
-    label="soleus_r velocity"
-)
+# time = np.arange(len(soleus_length_history))
 
-plt.plot(
-    time,
-    gastroc_vel_history,
-    label="gastroc_r veolocity"
-)
+# plt.figure(figsize=(10, 5))
 
-plt.xlabel("step")
-plt.ylabel("MTU length [m]")
-plt.title("Muscle-Tendon Length")
-plt.legend()
-plt.grid()
+# plt.plot(
+#     time,
+#     soleus_length_history,
+#     label="soleus_r length"
+# )
 
-plt.show()
+# plt.plot(
+#     time,
+#     gastroc_length_history,
+#     label="gastroc_r length"
+# )
+
+# plt.plot(
+#     time,
+#     soleus_vel_history,
+#     label="soleus_r velocity"
+# )
+
+# plt.plot(
+#     time,
+#     gastroc_vel_history,
+#     label="gastroc_r veolocity"
+# )
+
+# plt.xlabel("step")
+# plt.ylabel("MTU length [m]")
+# plt.title("Muscle-Tendon Length")
+# plt.legend()
+# plt.grid()
+
+# plt.show()
 

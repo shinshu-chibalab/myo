@@ -4,19 +4,19 @@ from render.render import render_video
 from controller.Standing_Controller import standing_controller
 from evaluator.f1EnergyAndCom_evaluator import standing_evaluator
 # from x0_gait10dof18musc import muscles18_v0
-from x0_gait10dof24musc import muscles24_v3
+from x0_gait10dof24musc import muscles24_v0, muscles24_v3
 
 
 if __name__ == "__main__":
 
     model_path = "myo_sim/gait10dof24musc/gait10dof24musc_cvt2.xml"
-    model_name = "gait10dof18musc_standing_v3(cma-es)"
-    muscles = muscles24_v3
+    model_name = "gait10dof18musc_standing_v4(cma-es)"
+    muscles = muscles24_v0
 
     sim_steps = 1000
     popsize = 112
     maxiter = 3000
-    delay_time = 0.0
+    delay_time = 0.2
     noise_std = 0.00
     n_jobs = 56
     symmetry = True

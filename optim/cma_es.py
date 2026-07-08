@@ -45,7 +45,7 @@ class CMA_ES(OptimizerBase):
         opts = {
             "maxiter": maxiter,
             "popsize": popsize,
-            "CMA_stds": (bounds_upper - bounds_lower) * 0.1,
+            "CMA_stds": (bounds_upper - bounds_lower) * sigma0,
             "tolfun": 1e-12,
             "tolx": 1e-12,
             "tolfunhist": 1e-12,

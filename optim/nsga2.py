@@ -16,7 +16,7 @@ from render.plot_cost import plot_cost_history
 from render.plot_pareto import plot_pareto_front, plot_pareto_front_hist
 from render.render import render_video
 
-class NSGA2_FF(OptimizerBase):
+class NSGA2(OptimizerBase):
     def __init__(self, model_path, muscles, controller, evaluator, sim_steps, model_name):
         self.model_path = model_path
         self.model = MjModel.from_xml_path(model_path)
